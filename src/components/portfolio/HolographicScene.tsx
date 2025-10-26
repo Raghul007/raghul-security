@@ -8,36 +8,62 @@ interface HolographicSceneProps {
 
 const HolographicScene = ({ onActivate }: HolographicSceneProps) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showCards, setShowCards] = useState(false);
 
   const handleClick = () => {
     setIsScanning(true);
     setTimeout(() => {
-      onActivate();
+      setIsScanning(false);
+      setShowWelcome(true);
     }, 2000);
+    setTimeout(() => {
+      setShowWelcome(false);
+      setShowCards(true);
+    }, 4000);
+    setTimeout(() => {
+      onActivate();
+    }, 6000);
+  };
+
+  // Generate random binary numbers
+  const generateNumbers = () => {
+    const numbers = ['0', '1'];
+    return numbers[Math.floor(Math.random() * numbers.length)];
   };
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden grid-background">
-      {/* Ambient particles */}
-      <div className="absolute inset-0">
-        {[...Array(30)].map((_, i) => (
+      {/* 3D Falling Numbers Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        {[...Array(150)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-primary rounded-full"
+            className="absolute text-primary/60 font-mono font-bold"
             style={{
               left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              top: '-10%',
+              fontSize: `${12 + Math.random() * 16}px`,
             }}
             animate={{
-              opacity: [0.2, 0.8, 0.2],
-              scale: [1, 1.5, 1],
+              y: ['-10%', '110%'],
+              opacity: [0, 1, 0],
+              color: [
+                'hsl(var(--cyber-blue) / 0.8)',
+                'hsl(var(--cyber-red) / 0.9)',
+                'hsl(var(--cyber-purple) / 0.8)',
+                'hsl(var(--cyber-blue) / 0.8)'
+              ],
             }}
             transition={{
               duration: 2 + Math.random() * 3,
               repeat: Infinity,
               delay: Math.random() * 2,
+              ease: 'linear',
             }}
-          />
+          >
+            {generateNumbers()}
+          </motion.div>
         ))}
       </div>
 
@@ -103,14 +129,37 @@ const HolographicScene = ({ onActivate }: HolographicSceneProps) => {
           </div>
         </motion.div>
 
-        {/* Scanning beam (appears on click) */}
+        {/* Complete image scan (appears on click) */}
         {isScanning && (
           <motion.div
-            className="absolute inset-0 bg-accent/80 mix-blend-screen"
+            className="absolute inset-0 bg-accent/60 mix-blend-screen"
             initial={{ scaleY: 0, transformOrigin: 'top' }}
             animate={{ scaleY: 1 }}
             transition={{ duration: 2, ease: 'easeOut' }}
           />
+        )}
+
+        {/* WELCOME text animation */}
+        {showWelcome && (
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center z-20 bg-black/80 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.h2
+              className="text-6xl md:text-8xl font-orbitron text-accent cyber-glow-red"
+              initial={{ scale: 0, rotateX: -90, opacity: 0 }}
+              animate={{ scale: 1, rotateX: 0, opacity: 1 }}
+              transition={{ duration: 1.5, ease: 'easeOut' }}
+              style={{
+                textShadow: '0 0 20px hsl(var(--cyber-red)), 0 0 40px hsl(var(--cyber-red)), 0 0 60px hsl(var(--cyber-red))',
+                transform: 'perspective(1000px) rotateX(0deg)',
+              }}
+            >
+              WELCOME
+            </motion.h2>
+          </motion.div>
         )}
 
         {/* Name and role */}
@@ -136,7 +185,7 @@ const HolographicScene = ({ onActivate }: HolographicSceneProps) => {
               repeat: Infinity,
             }}
           >
-            CLICK TO ACTIVATE
+            CLICK TO INITIATE SCAN
           </motion.p>
         </motion.div>
       </motion.div>

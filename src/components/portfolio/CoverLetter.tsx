@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Download, Upload } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import PasswordPrompt from './PasswordPrompt';
+import { githubFileSystemService } from '@/services/githubFileSystemService';
 import { toast } from 'sonner';
 
 interface CoverLetterProps {
@@ -10,50 +10,35 @@ interface CoverLetterProps {
 }
 
 const CoverLetter = ({ onClose }: CoverLetterProps) => {
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [coverLetterData, setCoverLetterData] = useState<{ name: string; data: string; type: string } | null>(null);
+  const [coverLetterData, setCoverLetterData] = useState<{ name: string; url: string; type: string; downloadUrl: string } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('coverLetterFile');
-    if (saved) {
-      setCoverLetterData(JSON.parse(saved));
-    }
-  }, []);
-
-  const handleUploadClick = () => {
-    setShowPasswordPrompt(true);
-  };
-
-  const handlePasswordSuccess = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx';
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const fileData = {
-            name: file.name,
-            data: reader.result as string,
-            type: file.type,
-          };
-          localStorage.setItem('coverLetterFile', JSON.stringify(fileData));
-          setCoverLetterData(fileData);
-          toast.success('Cover letter uploaded successfully!');
-        };
-        reader.readAsDataURL(file);
+    const loadCoverLetterData = async () => {
+      try {
+        const coverLetter = await githubFileSystemService.loadCoverLetter();
+        setCoverLetterData(coverLetter);
+      } catch (error) {
+        console.error('Error loading cover letter:', error);
+        toast.error('Failed to load cover letter from GitHub');
+      } finally {
+        setLoading(false);
       }
     };
-    input.click();
-  };
+
+    loadCoverLetterData();
+  }, []);
 
   const handleDownload = () => {
     if (coverLetterData) {
+      // Create a temporary link element for download
       const link = document.createElement('a');
-      link.href = coverLetterData.data;
+      link.href = coverLetterData.downloadUrl;
       link.download = coverLetterData.name;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       toast.success('Cover letter downloaded!');
     } else {
       toast.error('No cover letter available to download');
@@ -88,18 +73,22 @@ const CoverLetter = ({ onClose }: CoverLetterProps) => {
             </h2>
 
             <div className="space-y-6">
-              {coverLetterData ? (
+              {loading ? (
+                <div className="flex justify-center items-center py-20">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : coverLetterData ? (
                 <div className="mb-8">
                   {coverLetterData.type === 'application/pdf' ? (
                     <iframe
-                      src={coverLetterData.data}
+                      src={coverLetterData.url}
                       className="w-full h-[600px] rounded-lg border border-primary/30"
                       title="Cover Letter Preview"
                     />
                   ) : (
                     <div className="p-8 bg-primary/10 rounded-lg border border-primary/30">
                       <p className="text-foreground/80 text-center">
-                        File: {coverLetterData.name}
+                        File: {githubFileSystemService.getDisplayName(coverLetterData.name)}
                       </p>
                       <p className="text-sm text-muted-foreground text-center mt-2">
                         Preview not available for this file type. Use download button.
@@ -108,44 +97,35 @@ const CoverLetter = ({ onClose }: CoverLetterProps) => {
                   )}
                 </div>
               ) : (
-                <p className="text-foreground/80 text-lg">
-                  Upload your professional cover letter to display and download.
-                </p>
+                <div className="p-8 bg-muted/20 rounded-lg border border-primary/30">
+                  <p className="text-foreground/80 text-lg mb-4">
+                    No cover letter file found in the portfolio folder.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Please add your cover letter file to the <code className="bg-muted px-2 py-1 rounded">portfolio-data/cover-letter/</code> folder in your GitHub repository.
+                  </p>
+                </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+              <div className="flex justify-center items-center pt-8">
                 <Button
                   onClick={handleDownload}
                   disabled={!coverLetterData}
                   className="bg-primary hover:bg-primary/80 text-background font-orbitron min-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download className="w-5 h-5 mr-2" />
-                  DOWNLOAD
-                </Button>
-
-                <Button
-                  onClick={handleUploadClick}
-                  variant="outline"
-                  className="border-secondary text-secondary hover:bg-secondary hover:text-white font-orbitron min-w-[200px]"
-                >
-                  <Upload className="w-5 h-5 mr-2" />
-                  UPLOAD NEW
+                  DOWNLOAD COVER LETTER
                 </Button>
               </div>
 
-              <p className="text-sm text-muted-foreground mt-8">
-                Supported formats: PDF, DOC, DOCX
+              <p className="text-sm text-muted-foreground mt-8 text-center">
+                To update your cover letter, replace the file in the <code className="bg-muted px-2 py-1 rounded">portfolio-data/cover-letter/</code> folder in your GitHub repository.
               </p>
             </div>
           </motion.div>
         </div>
       </div>
 
-      <PasswordPrompt
-        isOpen={showPasswordPrompt}
-        onClose={() => setShowPasswordPrompt(false)}
-        onSuccess={handlePasswordSuccess}
-      />
     </motion.div>
   );
 };

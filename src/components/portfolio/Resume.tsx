@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Download, Upload } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import PasswordPrompt from './PasswordPrompt';
+import { githubFileSystemService } from '@/services/githubFileSystemService';
 import { toast } from 'sonner';
 
 interface ResumeProps {
@@ -10,50 +10,35 @@ interface ResumeProps {
 }
 
 const Resume = ({ onClose }: ResumeProps) => {
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [resumeData, setResumeData] = useState<{ name: string; data: string; type: string } | null>(null);
+  const [resumeData, setResumeData] = useState<{ name: string; url: string; type: string; downloadUrl: string } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('resumeFile');
-    if (saved) {
-      setResumeData(JSON.parse(saved));
-    }
-  }, []);
-
-  const handleUploadClick = () => {
-    setShowPasswordPrompt(true);
-  };
-
-  const handlePasswordSuccess = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx';
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const fileData = {
-            name: file.name,
-            data: reader.result as string,
-            type: file.type,
-          };
-          localStorage.setItem('resumeFile', JSON.stringify(fileData));
-          setResumeData(fileData);
-          toast.success('Resume uploaded successfully!');
-        };
-        reader.readAsDataURL(file);
+    const loadResumeData = async () => {
+      try {
+        const resume = await githubFileSystemService.loadResume();
+        setResumeData(resume);
+      } catch (error) {
+        console.error('Error loading resume:', error);
+        toast.error('Failed to load resume from GitHub');
+      } finally {
+        setLoading(false);
       }
     };
-    input.click();
-  };
+
+    loadResumeData();
+  }, []);
 
   const handleDownload = () => {
     if (resumeData) {
+      // Create a temporary link element for download
       const link = document.createElement('a');
-      link.href = resumeData.data;
+      link.href = resumeData.downloadUrl;
       link.download = resumeData.name;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       toast.success('Resume downloaded!');
     } else {
       toast.error('No resume available to download');
@@ -88,18 +73,22 @@ const Resume = ({ onClose }: ResumeProps) => {
             </h2>
 
             <div className="space-y-6">
-              {resumeData ? (
+              {loading ? (
+                <div className="flex justify-center items-center py-20">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : resumeData ? (
                 <div className="mb-8">
                   {resumeData.type === 'application/pdf' ? (
                     <iframe
-                      src={resumeData.data}
+                      src={resumeData.url}
                       className="w-full h-[600px] rounded-lg border border-primary/30"
                       title="Resume Preview"
                     />
                   ) : (
                     <div className="p-8 bg-primary/10 rounded-lg border border-primary/30">
                       <p className="text-foreground/80 text-center">
-                        File: {resumeData.name}
+                        File: {githubFileSystemService.getDisplayName(resumeData.name)}
                       </p>
                       <p className="text-sm text-muted-foreground text-center mt-2">
                         Preview not available for this file type. Use download button.
@@ -108,12 +97,17 @@ const Resume = ({ onClose }: ResumeProps) => {
                   )}
                 </div>
               ) : (
-                <p className="text-foreground/80 text-lg">
-                  Upload your professional resume to display and download.
-                </p>
+                <div className="p-8 bg-muted/20 rounded-lg border border-primary/30">
+                  <p className="text-foreground/80 text-lg mb-4">
+                    No resume file found in the portfolio folder.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Please add your resume file to the <code className="bg-muted px-2 py-1 rounded">portfolio-data/resume/</code> folder in your GitHub repository.
+                  </p>
+                </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+              <div className="flex justify-center items-center pt-8">
                 <Button
                   onClick={handleDownload}
                   disabled={!resumeData}
@@ -122,30 +116,16 @@ const Resume = ({ onClose }: ResumeProps) => {
                   <Download className="w-5 h-5 mr-2" />
                   DOWNLOAD RESUME
                 </Button>
-
-                <Button
-                  onClick={handleUploadClick}
-                  variant="outline"
-                  className="border-secondary text-secondary hover:bg-secondary hover:text-white font-orbitron min-w-[200px]"
-                >
-                  <Upload className="w-5 h-5 mr-2" />
-                  UPLOAD NEW
-                </Button>
               </div>
 
-              <p className="text-sm text-muted-foreground mt-8">
-                Supported formats: PDF, DOC, DOCX
+              <p className="text-sm text-muted-foreground mt-8 text-center">
+                To update your resume, replace the file in the <code className="bg-muted px-2 py-1 rounded">portfolio-data/resume/</code> folder in your GitHub repository.
               </p>
             </div>
           </motion.div>
         </div>
       </div>
 
-      <PasswordPrompt
-        isOpen={showPasswordPrompt}
-        onClose={() => setShowPasswordPrompt(false)}
-        onSuccess={handlePasswordSuccess}
-      />
     </motion.div>
   );
 };

@@ -114,4 +114,30 @@ All colors MUST be HSL.
       linear-gradient(90deg, hsl(var(--cyber-blue) / 0.1) 1px, transparent 1px);
     background-size: 50px 50px;
   }
+  
+  .neon-red-glow {
+    box-shadow: 
+      0 0 5px hsl(var(--cyber-red)),
+      0 0 10px hsl(var(--cyber-red)),
+      0 0 15px hsl(var(--cyber-red)),
+      0 0 20px hsl(var(--cyber-red));
+    animation: neon-red-pulse 2s ease-in-out infinite alternate;
+  }
+  
+  @keyframes neon-red-pulse {
+    from {
+      box-shadow: 
+        0 0 5px hsl(var(--cyber-red)),
+        0 0 10px hsl(var(--cyber-red)),
+        0 0 15px hsl(var(--cyber-red)),
+        0 0 20px hsl(var(--cyber-red));
+    }
+    to {
+      box-shadow: 
+        0 0 10px hsl(var(--cyber-red)),
+        0 0 20px hsl(var(--cyber-red)),
+        0 0 30px hsl(var(--cyber-red)),
+        0 0 40px hsl(var(--cyber-red));
+    }
+  }
 }

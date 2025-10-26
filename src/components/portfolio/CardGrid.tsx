@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { User, FileText, FolderOpen, Award, BookOpen, Briefcase, ArrowLeft } from 'lucide-react';
+import { User, FileText, FolderOpen, Award, BookOpen, Briefcase, ArrowLeft, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CardGridProps {
@@ -27,6 +27,16 @@ const CardGrid = ({ onCardClick, onBack }: CardGridProps) => {
       >
         <ArrowLeft className="w-5 h-5 mr-2" />
         BACK
+      </Button>
+
+      {/* Contact Me button */}
+      <Button
+        onClick={() => onCardClick('contact')}
+        className="fixed top-8 right-8 z-50 bg-accent hover:bg-accent/80 text-white font-orbitron neon-red-glow"
+        size="lg"
+      >
+        <Mail className="w-5 h-5 mr-2" />
+        CAN WE IN TOUCH
       </Button>
       {/* Red scanning beam effect */}
       <motion.div
